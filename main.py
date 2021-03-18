@@ -1,6 +1,3 @@
-# Run as python checker-demo.py model.py
-# Requires Python 3.7 or newer
-
 import sys
 from importlib import util
 from timeit import default_timer as timer
@@ -14,18 +11,18 @@ model = util.module_from_spec(spec)
 spec.loader.exec_module(model)
 
 
-
 def start():
-    network = model.Network()  # create network instance
+    network = model.Network()
     universe = createUniverse(network)
     print("The model has " + str(len(universe)) + " reachable states.")
     initialState = network.get_initial_state()
     for i in range(len(network.properties)):
         start_time = timer()
-        property = network.properties[i]
-        result = checkSingleProperty(universe, network, property, initialState)
+        propertie = network.properties[i]
+        result = checkSingleProperty(universe, network, propertie, initialState)
         end_time = timer()
-        print("property "+ str(property) + " is " + str(result)+ ". The calculation took "+str(end_time-start_time) + " seconds.")
+        print("property " + str(propertie) + " is " + str(result) + ". The calculation took " + str(
+            end_time - start_time) + " seconds.")
 
 
 # finds the reachable universe of a model
@@ -48,8 +45,8 @@ def createUniverse(network):
     return universe
 
 
-def checkSingleProperty(universe, network, property, initialState):
-    trueStates = checkSinglePropertyExpression(universe, network, property.exp)
+def checkSingleProperty(universe, network, propertie, initialState):
+    trueStates = checkSinglePropertyExpression(universe, network, propertie.exp)
     return initialState in trueStates
 
 
@@ -58,13 +55,20 @@ def checkSinglePropertyExpression(universe, network, propertyExpression):
     selectorExpressions = {"exists", "forall"}
     pathExpressions = {"until", "next", "step-bounded-always", "step-bounded-eventually",
                        "step-bounded-until", "eventually", "always"}
+    comparisonExpressions = {"<", ">", "<=", ">="}
+    probabilityExpressions = {"p_min", "p_max"}
+
     op = propertyExpression.op
     if op in logicalExpressions:
         return checkLogicalExpression(universe, network, propertyExpression)
     elif op in selectorExpressions:
         return checkSelectorExpression(universe, network, propertyExpression)
+    elif op in comparisonExpressions:
+        return checkComparisonExpressions(universe, network, propertyExpression)
+    elif op in probabilityExpressions:
+        raise Exception("incorrectly formatted property")
     elif op in pathExpressions:
-        return checkPathExpression(universe, network, propertyExpression)
+        raise Exception("incorrectly formatted property")
     else:
         print(op)
         raise Exception("unsupported propertyExpression")
@@ -106,8 +110,6 @@ def checkSelectorExpression(universe, network, selectorPropertyExpression):
         raise Exception("unsupported propertyExpression")
 
     propertyExpression = selectorPropertyExpression.args[0]
-
-    # print(propertyExpression.op)
     if propertyExpression.op == "until":
         allowedStates = checkSinglePropertyExpression(universe, network, propertyExpression.args[0])
         goalStates = checkSinglePropertyExpression(universe, network, propertyExpression.args[1])
@@ -176,19 +178,7 @@ def findStatesWithUntil(network, allowedStates, goalStates, maxSteps, returnStat
                     statesForSingleStep.add(state)
         if changed:
             returnStates = returnStates.union(statesForSingleStep)
-
     return returnStates
-
-    # F<> eventually
-    # Get set A which holds to the condition
-    # Go through set A and add all predisesors to A. Add itself to B and remove itself from A.
-    # G[] always
-    # X next
-    # U until
-
-
-def checkPathExpression(universe, network, propertyExpression):
-    raise Exception("incorrectly formatted property")
 
 
 def getAllNewStates(network, state):
@@ -202,11 +192,106 @@ def getAllNewStates(network, state):
     return nextStates
 
 
-start()
+def checkComparisonExpressions(universe, network, propertyExpression):
+    probability = propertyExpression.args[1]
+    if not isinstance(probability, float):
+        raise Exception("incorrectly formatted property")
 
-# 1 start with some printing
-# 1.1 check properties
-# 1.1.1 check single property
-# enum with syntax of property
-# 1.1.1.1 transform properties
-# 1.1.1.2 check single syntax of property.
+    isMax = None
+    probabilityExpression = propertyExpression.args[0]
+    if probabilityExpression.op == "p_min":
+        isMax = False
+    elif probabilityExpression.op == "p_max":
+        isMax = True
+    else:
+        raise Exception("incorrectly formatted property")
+
+    isEquals = None
+    if propertyExpression.op == "<" and isMax:
+        isEquals = False
+    elif propertyExpression.op == "<=" and isMax:
+        isEquals = True
+    elif propertyExpression.op == ">" and not isMax:
+        isEquals = False
+    elif propertyExpression.op == ">=" and not isMax:
+        isEquals = True
+    else:
+        raise Exception("incorrectly formatted property")
+
+    pathExpression = probabilityExpression.args[0]
+    if pathExpression.op == "until":
+        allowedStates = checkSinglePropertyExpression(universe, network, pathExpression.args[0])
+        goalStates = checkSinglePropertyExpression(universe, network, pathExpression.args[1])
+        return findStatesWithProbabilityUntil(network, universe, allowedStates, goalStates, isEquals, isMax,
+                                              probability)
+    elif pathExpression.op == "eventually":
+        goalStates = checkSinglePropertyExpression(universe, network, pathExpression.args[0])
+        return findStatesWithProbabilityUntil(network, universe, universe, goalStates, isEquals, isMax, probability)
+    elif pathExpression.op == "always":
+        expression1 = model.PropertyExpression("not", [pathExpression.args[0]])
+        expression2 = model.PropertyExpression("eventually", [expression1])
+        expression3 = None
+        expression4 = None
+        if isMax:
+            expression3 = model.PropertyExpression("p_min", [expression2])
+            if isEquals:
+                expression4 = model.PropertyExpression(">", [expression3, 1 - probability])
+            else:
+                expression4 = model.PropertyExpression(">=", [expression3, 1 - probability])
+        else:
+            expression3 = model.PropertyExpression("p_max", [expression2])
+            if isEquals:
+                expression4 = model.PropertyExpression("<", [expression3, 1 - probability])
+            else:
+                expression4 = model.PropertyExpression("<=", [expression3, 1 - probability])
+
+        return checkSinglePropertyExpression(universe, network, expression4)
+    elif pathExpression.op == "next":
+        raise Exception("unsupported propertyExpression")
+    elif pathExpression.op == "step-bounded-always":
+        raise Exception("unsupported propertyExpression")
+    elif pathExpression.op == "step-bounded-eventually":
+        raise Exception("unsupported propertyExpression")
+    elif pathExpression.op == "step-bounded-until":
+        raise Exception("unsupported propertyExpression")
+    else:
+        raise Exception("incorrectly formatted property")
+
+
+def findStatesWithProbabilityUntil(network, universe, allowedStates, goalStates, isEquals, isMax, probabilityTarget):
+    probabilityReachGoal = dict()
+    for state in universe:
+        probabilityReachGoal[state] = 0
+    for state in goalStates:
+        probabilityReachGoal[state] = 1
+
+    for i in range(1, 100):
+        for stateFrom in allowedStates:
+            if stateFrom in goalStates:
+                continue
+            outerProbability = -1
+            transitions = network.get_transitions(stateFrom)
+            for transition in transitions:
+                branches = network.get_branches(stateFrom, transition)
+                probability = 0
+                for branch in branches:
+                    stateTo = network.jump(stateFrom, transition, branch)
+                    probability = probability + branch.probability * probabilityReachGoal[stateTo]
+                if outerProbability == -1 or \
+                        (outerProbability <= probability and isMax) or \
+                        (outerProbability >= probability and not isMax):
+                    outerProbability = probability
+            if outerProbability != -1:
+                probabilityReachGoal[stateFrom] = outerProbability
+
+    returnStates = goalStates.copy()
+    for state in allowedStates:
+        if (probabilityReachGoal[state] <= probabilityTarget and isMax and isEquals) or \
+                (probabilityReachGoal[state] < probabilityTarget and isMax and not isEquals) or \
+                (probabilityReachGoal[state] >= probabilityTarget and not isMax and isEquals) or \
+                (probabilityReachGoal[state] > probabilityTarget and not isMax and not isEquals):
+            returnStates.add(state)
+    return returnStates
+
+
+start()
