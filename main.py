@@ -207,14 +207,19 @@ def checkComparisonExpressions(universe, network, propertyExpression):
         raise Exception("incorrectly formatted property")
 
     isEquals = None
-    if propertyExpression.op == "<" and isMax:
+    isLessThan = None
+    if propertyExpression.op == "<":
         isEquals = False
-    elif propertyExpression.op == "<=" and isMax:
+        isLessThan = True
+    elif propertyExpression.op == "<=":
         isEquals = True
-    elif propertyExpression.op == ">" and not isMax:
+        isLessThan = True
+    elif propertyExpression.op == ">":
         isEquals = False
-    elif propertyExpression.op == ">=" and not isMax:
+        isLessThan = False
+    elif propertyExpression.op == ">=":
         isEquals = True
+        isLessThan = False
     else:
         raise Exception("incorrectly formatted property")
 
@@ -222,11 +227,12 @@ def checkComparisonExpressions(universe, network, propertyExpression):
     if pathExpression.op == "until":
         allowedStates = checkSinglePropertyExpression(universe, network, pathExpression.args[0])
         goalStates = checkSinglePropertyExpression(universe, network, pathExpression.args[1])
-        return findStatesWithProbabilityUntil(network, universe, allowedStates, goalStates, isEquals, isMax,
+        return findStatesWithProbabilityUntil(network, universe, allowedStates, goalStates, isEquals, isLessThan, isMax,
                                               probability)
     elif pathExpression.op == "eventually":
         goalStates = checkSinglePropertyExpression(universe, network, pathExpression.args[0])
-        return findStatesWithProbabilityUntil(network, universe, universe, goalStates, isEquals, isMax, probability)
+        return findStatesWithProbabilityUntil(network, universe, universe, goalStates, isEquals, isLessThan, isMax,
+                                              probability)
     elif pathExpression.op == "always":
         expression1 = model.PropertyExpression("not", [pathExpression.args[0]])
         expression2 = model.PropertyExpression("eventually", [expression1])
@@ -235,7 +241,7 @@ def checkComparisonExpressions(universe, network, propertyExpression):
         if isMax:
             expression3 = model.PropertyExpression("p_min", [expression2])
             if isEquals:
-                expression4 = model.PropertyExpression(">", [expression3, 1 - probability])
+                expression4 = model.PropertyExpression(">", [expression3, 1 - probability]) # this doesn't work
             else:
                 expression4 = model.PropertyExpression(">=", [expression3, 1 - probability])
         else:
@@ -258,14 +264,17 @@ def checkComparisonExpressions(universe, network, propertyExpression):
         raise Exception("incorrectly formatted property")
 
 
-def findStatesWithProbabilityUntil(network, universe, allowedStates, goalStates, isEquals, isMax, probabilityTarget):
+def findStatesWithProbabilityUntil(network, universe, allowedStates, goalStates, isEquals, isLessThan, isMax,
+                                   probabilityTarget):
     probabilityReachGoal = dict()
     for state in universe:
         probabilityReachGoal[state] = 0
     for state in goalStates:
         probabilityReachGoal[state] = 1
 
-    for i in range(1, 100):
+    maxRelativeError = 1
+    while maxRelativeError >= 0.1:
+        maxRelativeError = 0
         for stateFrom in allowedStates:
             if stateFrom in goalStates:
                 continue
@@ -282,14 +291,18 @@ def findStatesWithProbabilityUntil(network, universe, allowedStates, goalStates,
                         (outerProbability >= probability and not isMax):
                     outerProbability = probability
             if outerProbability != -1:
+                if outerProbability != 0:
+                    relativeError = abs(outerProbability - probabilityReachGoal[stateFrom]) / outerProbability
+                    if maxRelativeError < relativeError:
+                        maxRelativeError = relativeError
                 probabilityReachGoal[stateFrom] = outerProbability
 
     returnStates = goalStates.copy()
     for state in allowedStates:
-        if (probabilityReachGoal[state] <= probabilityTarget and isMax and isEquals) or \
-                (probabilityReachGoal[state] < probabilityTarget and isMax and not isEquals) or \
-                (probabilityReachGoal[state] >= probabilityTarget and not isMax and isEquals) or \
-                (probabilityReachGoal[state] > probabilityTarget and not isMax and not isEquals):
+        if (probabilityReachGoal[state] <= probabilityTarget and isLessThan and isEquals) or \
+                (probabilityReachGoal[state] < probabilityTarget and isLessThan and not isEquals) or \
+                (probabilityReachGoal[state] >= probabilityTarget and not isLessThan and isEquals) or \
+                (probabilityReachGoal[state] > probabilityTarget and not isLessThan and not isEquals):
             returnStates.add(state)
     return returnStates
 
