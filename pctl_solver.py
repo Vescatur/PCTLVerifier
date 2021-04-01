@@ -1,40 +1,40 @@
+from config import RELATIVE_ERROR_TARGET
 
 
 def findStatesWithProbabilityUntil(network, universe, allowedStates, goalStates, isEquals, isLessThan, isMax,
                                    probabilityTarget):
-    probabilityToReachGoal = findProbabilityToReachGoal(network, universe, allowedStates, goalStates, isMax)
-    returnStates = goalStates.copy()
-    for state in allowedStates:
-        if (probabilityToReachGoal[state] <= probabilityTarget and isLessThan and isEquals) or \
-                (probabilityToReachGoal[state] < probabilityTarget and isLessThan and not isEquals) or \
-                (probabilityToReachGoal[state] >= probabilityTarget and not isLessThan and isEquals) or \
-                (probabilityToReachGoal[state] > probabilityTarget and not isLessThan and not isEquals):
-            returnStates.add(state)
+    initialProbabilityToReachGoal = createInitialProbabilityToReachGoal(universe, goalStates)
+
+    probabilityToReachGoal = findProbabilityToReachGoal(network, allowedStates, goalStates, isMax, initialProbabilityToReachGoal, RELATIVE_ERROR_TARGET)
+    returnStates = findStatesWithCorrectProbability(goalStates,allowedStates,probabilityToReachGoal,probabilityTarget,isLessThan,isEquals)
     return returnStates
 
 
-def findProbabilityToReachGoal(network, universe, allowedStates, goalStates, isMax):
-    probabilityToReachGoal = dict()
+def createInitialProbabilityToReachGoal(universe, goalStates):
+    initialProbabilityToReachGoal = dict()
     for state in universe:
-        probabilityToReachGoal[state] = 0
+        initialProbabilityToReachGoal[state] = 0
     for state in goalStates:
-        probabilityToReachGoal[state] = 1
+        initialProbabilityToReachGoal[state] = 1
+    return initialProbabilityToReachGoal
 
+
+def findProbabilityToReachGoal(network, allowedStates, goalStates, isMax, probabilityToReachGoal, relativeErrorTarget):
     maxRelativeError = 1
-    while maxRelativeError >= 0.1:
+    while maxRelativeError >= relativeErrorTarget:
         maxRelativeError = 0
         for stateFrom in allowedStates:
             if stateFrom in goalStates:
                 continue
             outerProbability = stepForSingleState(network,stateFrom,probabilityToReachGoal, isMax)
-            if outerProbability != -1:
-                if outerProbability != 0:
-                    relativeError = abs(outerProbability - probabilityToReachGoal[stateFrom]) / outerProbability
-                    if maxRelativeError < relativeError:
-                        maxRelativeError = relativeError
-                probabilityToReachGoal[stateFrom] = outerProbability
+            if outerProbability != 0:
+                maxRelativeError = max(maxRelativeError, calculateRelativeError(probabilityToReachGoal[stateFrom], outerProbability))
+            probabilityToReachGoal[stateFrom] = outerProbability
     return probabilityToReachGoal
 
+
+def calculateRelativeError(oldProbability, newProbability):
+    return abs(newProbability - oldProbability) / newProbability
 
 def stepForSingleState(network,stateFrom,probabilityReachGoal, isMax):
     outerProbability = -1
@@ -49,10 +49,18 @@ def stepForSingleState(network,stateFrom,probabilityReachGoal, isMax):
                 (outerProbability <= probability and isMax) or \
                 (outerProbability >= probability and not isMax):
             outerProbability = probability
+    if outerProbability == -1:
+        return probabilityReachGoal[stateFrom]
     return outerProbability
 
-def findStatesWithOptimisticValueIteration():
-    print("a")
 
-def findProbabilityToReachGoalWithOptimisticValueIteration():
-    print("b")
+def findStatesWithCorrectProbability(goalStates,allowedStates,probabilityToReachGoal,probabilityTarget,isLessThan,isEquals):
+    returnStates = goalStates.copy()
+    for state in allowedStates:
+        if (probabilityToReachGoal[state] <= probabilityTarget and isLessThan and isEquals) or \
+                (probabilityToReachGoal[state] < probabilityTarget and isLessThan and not isEquals) or \
+                (probabilityToReachGoal[state] >= probabilityTarget and not isLessThan and isEquals) or \
+                (probabilityToReachGoal[state] > probabilityTarget and not isLessThan and not isEquals):
+            returnStates.add(state)
+    return returnStates
+
