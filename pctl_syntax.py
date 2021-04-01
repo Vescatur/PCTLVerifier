@@ -1,4 +1,5 @@
-from config import USE_OPTIMISTIC_VALUE_ITERATION
+from config import USE_OPTIMISTIC_VALUE_ITERATION, USE_EVOLUTION_VALUE_ITERATION
+from evolution_pctl_solver import findStatesWithEvolutionValueIteration
 from optimistic_pctl_solver import findStatesWithOptimisticValueIteration
 from pctl_solver import findStatesWithProbabilityUntil
 
@@ -38,7 +39,10 @@ def checkComparisonExpressions(model, checkSinglePropertyExpression, universe, n
     if pathExpression.op == "until":
         allowedStates = checkSinglePropertyExpression(model, universe, network, pathExpression.args[0])
         goalStates = checkSinglePropertyExpression(model, universe, network, pathExpression.args[1])
-        if USE_OPTIMISTIC_VALUE_ITERATION:
+        if USE_EVOLUTION_VALUE_ITERATION:
+            return findStatesWithEvolutionValueIteration(network, universe, allowedStates, goalStates, isEquals,
+                                                          isLessThan, isMax, probability)
+        elif USE_OPTIMISTIC_VALUE_ITERATION:
             return findStatesWithOptimisticValueIteration(network, universe, allowedStates, goalStates, isEquals,
                                                           isLessThan, isMax, probability)
         else:
@@ -46,6 +50,9 @@ def checkComparisonExpressions(model, checkSinglePropertyExpression, universe, n
                                               probability)
     elif pathExpression.op == "eventually":
         goalStates = checkSinglePropertyExpression(model, universe, network, pathExpression.args[0])
+        if USE_EVOLUTION_VALUE_ITERATION:
+            return findStatesWithEvolutionValueIteration(network, universe, universe, goalStates, isEquals,
+                                                          isLessThan, isMax, probability)
         if USE_OPTIMISTIC_VALUE_ITERATION:
             return findStatesWithOptimisticValueIteration(network, universe, universe, goalStates, isEquals, isLessThan,
                                                           isMax, probability)

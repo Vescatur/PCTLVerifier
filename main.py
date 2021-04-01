@@ -17,13 +17,14 @@ def start():
     universe = createUniverse(network)
     print("The model has " + str(len(universe)) + " reachable states.")
     initialState = network.get_initial_state()
-    for i in range(len(network.properties)):
-        start_time = timer()
-        propertie = network.properties[i]
-        result = checkSingleProperty(model,universe, network, propertie, initialState)
-        end_time = timer()
-        print("property " + str(propertie) + " is " + str(result) + ". The calculation took " + str(
-            end_time - start_time) + " seconds.")
+    #for i in range(len(network.properties)):
+    i = 0
+    start_time = timer()
+    propertie = network.properties[i]
+    result = checkSingleProperty(model,universe, network, propertie, initialState)
+    end_time = timer()
+    print("property " + str(propertie) + " is " + str(result) + ". The calculation took " + str(
+        end_time - start_time) + " seconds.")
 
 
 # finds the reachable universe of a model
