@@ -1,6 +1,7 @@
 import math
 import random
 
+from ctl_solver import findStatesWithUntil
 from pctl_solver import createInitialProbabilityToReachGoal, findStatesWithCorrectProbability, stepForSingleState
 
 def printDistribution(universe,distribution):
@@ -19,18 +20,16 @@ def printDistributions(universe,distributions):
 
 
 def findStatesWithEvolutionValueIteration(network, universe, allowedStates, goalStates, isEquals, isLessThan, isMax, probabilityTarget):
-    notBmecAllowedStates = set()
-    for state in universe:
-        if state.isHead == True:
-            notBmecAllowedStates.add(state)
-        if state.Main_location == 0:
-            notBmecAllowedStates.add(state)
-        if state.Main_location == 3:
-            notBmecAllowedStates.add(state)
+    notBmecAllowedStates = findStatesWithUntil(network, allowedStates, goalStates, set(), False)
+
+
+    #check welke states bij goal kan komen. Zet die in allowed States.
+    #check of er een mec is. Gooi dan een exception.
+
 
     distribution = findDistributionWithEvolutionValueIteration(network, universe, notBmecAllowedStates, goalStates, isMax)
     printDistribution(universe, distribution)
-    returnStates = findStatesWithCorrectProbability(goalStates,allowedStates,distribution,probabilityTarget,isLessThan,isEquals)
+    returnStates = findStatesWithCorrectProbability(goalStates,notBmecAllowedStates,distribution,probabilityTarget,isLessThan,isEquals)
     return returnStates
 
 
@@ -73,8 +72,8 @@ def findDistributionWithEvolutionValueIteration(network, universe, allowedStates
         #for i in range(copiedDistributions, numberOfDistributions):
         #   distributions[i] = createCombinedDistribution(universe, allowedStates, goalStates, lowestDistribution, highestDistribution)
 
-        print("distributions")
-        printDistributions(universe,distributions)
+        #print("distributions")
+        #printDistributions(universe,distributions)
         #for i in range(0, numberOfDistributions):
         #    print(distributions[i])
     return distributions[0]
@@ -105,8 +104,9 @@ def createCombinedDistribution(universe, allowedStates, goalStates, firstDistrib
             highestProbability = max(firstProbability,secondProbability)
             lowestProbability = min(firstProbability,secondProbability)
 
-            upperRandom = min(1,highestProbability+(difference*randomAllowance))
-            lowerRandom = max(0,lowestProbability-(difference*randomAllowance)) # wat als difference 0 is. En goal is niet 1.
+            upperRandom = highestProbability+(difference*randomAllowance)
+            lowerRandom = lowestProbability-(difference*randomAllowance)
+            #newDistribution[state] = max(0,min(1,random.uniform(lowerRandom,upperRandom)))
             newDistribution[state] = random.uniform(lowerRandom,upperRandom)
     return newDistribution
 
@@ -128,5 +128,4 @@ def stepForDistribution(universe, network, allowedStates, goalStates, isMax, dis
         outerProbability = stepForSingleState(network,stateFrom,distribution, isMax)
         newDistribution[stateFrom] = outerProbability
     return newDistribution
-
 
