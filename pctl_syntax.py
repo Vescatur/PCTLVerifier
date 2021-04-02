@@ -71,14 +71,14 @@ def checkComparisonExpressions(model, checkSinglePropertyExpression, universe, n
 
         if isLessThan:
             if isEquals:
-                expression4 = model.PropertyExpression(">", [expression3, 1 - probability]) # this doesn't work
+                expression4 = model.PropertyExpression(">=", [expression3, 1 - probability]) # this doesn't work
             else:
-                expression4 = model.PropertyExpression(">=", [expression3, 1 - probability])
+                expression4 = model.PropertyExpression(">", [expression3, 1 - probability])
         else:
             if isEquals:
-                expression4 = model.PropertyExpression("<", [expression3, 1 - probability])
-            else:
                 expression4 = model.PropertyExpression("<=", [expression3, 1 - probability])
+            else:
+                expression4 = model.PropertyExpression("<", [expression3, 1 - probability])
 
         return checkSinglePropertyExpression(model, universe, network, expression4)
     elif pathExpression.op == "next":
