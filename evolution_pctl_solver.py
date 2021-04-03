@@ -1,7 +1,8 @@
 import math
 import random
 
-from config import PRINT_EVI_STEP, PRINT_EVI_RESULT, RANDOMNESS_OF_STEP
+from config import PRINT_EVI_STEP, PRINT_EVI_RESULT, RANDOMNESS_OF_STEP_LOWER_BOUND, \
+    RANDOMNESS_OF_STEP_UPPER_BOUND
 from ctl_solver import findStatesWithUntil
 from pctl_solver import createInitialProbabilityToReachGoal, findStatesWithCorrectProbability, stepForSingleState
 
@@ -111,6 +112,8 @@ def createCombinedDistribution(universe, allowedStates, goalStates, firstDistrib
     newDistribution = createInitialProbabilityToReachGoal(universe, goalStates)
     distanceFirst = math.sqrt(scoreFirst)
     distanceSecond = math.sqrt(scoreSecond)
+    firstStep = random.uniform(0, RANDOMNESS_OF_STEP_UPPER_BOUND-RANDOMNESS_OF_STEP_LOWER_BOUND)+RANDOMNESS_OF_STEP_LOWER_BOUND
+    secondStep = random.uniform(0, RANDOMNESS_OF_STEP_UPPER_BOUND-RANDOMNESS_OF_STEP_LOWER_BOUND)+RANDOMNESS_OF_STEP_LOWER_BOUND
     for state in allowedStates:
         if state not in goalStates:
             firstProbability = firstDistribution[state]
@@ -129,8 +132,6 @@ def createCombinedDistribution(universe, allowedStates, goalStates, firstDistrib
             newDistribution[state] = random.uniform(lowerRandom, upperRandom)
 
             #This adds the direction in which the distributions are moving towards. It is scaled to the difference between the points.
-            firstStep = random.uniform(0, RANDOMNESS_OF_STEP)
-            secondStep = random.uniform(0, RANDOMNESS_OF_STEP)
             if distanceFirst != 0 and distanceSecond != 0:
                 newDistribution[state] = newDistribution[state] + \
                                      stepFirst[state]/distanceFirst*firstStep*difference + \
