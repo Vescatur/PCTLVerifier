@@ -7,31 +7,12 @@ from ctl_solver import findStatesWithUntil
 from pctl_solver import createInitialProbabilityToReachGoal, findStatesWithCorrectProbability, stepForSingleState
 
 
-def printDistribution(universe, distribution):
-    print("---")
-    for state in universe:
-        print(str(state) + " " + str(distribution[state]))
-
-
-def printDistributions(universe, distributions):
-    print("---")
-    for state in universe:
-        print(str(state), end='')
-        for distribution in distributions:
-            print(" " + str(distribution[state]), end='')
-        print("")
-
-
 def findStatesWithEvolutionValueIteration(network, universe, allowedStates, goalStates, isEquals, isLessThan, isMax,
                                           probabilityTarget):
     notBmecAllowedStates = findStatesWithUntil(network, allowedStates, goalStates, set(), False)
 
-    # check welke states bij goal kan komen. Zet die in allowed States.
-    # check of er een mec is. Gooi dan een exception.
-
     distribution = findDistributionWithEvolutionValueIteration(network, universe, notBmecAllowedStates, goalStates,
                                                                isMax)
-
     if PRINT_EVI_RESULT:
         printDistribution(universe, distribution)
     returnStates = findStatesWithCorrectProbability(goalStates, notBmecAllowedStates, distribution, probabilityTarget,
@@ -39,23 +20,6 @@ def findStatesWithEvolutionValueIteration(network, universe, allowedStates, goal
     return returnStates
 
 
-def copyDistribution(universe, distribution):
-    newDistribution = dict()
-    for state in universe:
-        newDistribution[state] = distribution[state]
-    return newDistribution
-
-
-def orderDistributions(numberOfDistributions, scores, distributions):
-    scoreDistributions = [None] * numberOfDistributions
-    for i in range(0, numberOfDistributions):
-        scoreDistributions[i] = (scores[i], distributions[i])
-    orderedScoreDistributions = sorted(scoreDistributions, key=lambda x: x[0])
-
-    orderedDistribution = [None] * numberOfDistributions
-    for i in range(0, numberOfDistributions):
-        orderedDistribution[i] = orderedScoreDistributions[i][1]
-    return orderedDistribution
 
 
 def findDistributionWithEvolutionValueIteration(network, universe, allowedStates, goalStates, isMax):
@@ -96,17 +60,6 @@ def findDistributionWithEvolutionValueIteration(network, universe, allowedStates
     return distributions[0]
 
 
-def createRandomDistribution(universe, allowedStates, goalStates):
-    distribution = dict()
-    for state in universe:
-        distribution[state] = 0
-    for state in allowedStates:
-        distribution[state] = random.uniform(0, 1)
-    for state in goalStates:
-        distribution[state] = 1
-    return distribution
-
-
 def createCombinedDistribution(universe, allowedStates, goalStates, firstDistribution, secondDistribution, scoreFirst, scoreSecond, stepFirst, stepSecond):
     randomAllowance = 0.1
     newDistribution = createInitialProbabilityToReachGoal(universe, goalStates)
@@ -140,19 +93,24 @@ def createCombinedDistribution(universe, allowedStates, goalStates, firstDistrib
     return newDistribution
 
 
+def orderDistributions(numberOfDistributions, scores, distributions):
+    scoreDistributions = [None] * numberOfDistributions
+    for i in range(0, numberOfDistributions):
+        scoreDistributions[i] = (scores[i], distributions[i])
+    orderedScoreDistributions = sorted(scoreDistributions, key=lambda x: x[0])
+
+    orderedDistribution = [None] * numberOfDistributions
+    for i in range(0, numberOfDistributions):
+        orderedDistribution[i] = orderedScoreDistributions[i][1]
+    return orderedDistribution
+
+
 def calculateDifferenceDistributionOfDistribution(universe, network, allowedStates, goalStates, isMax, distribution):
     nextDistribution = stepForDistribution(universe, network, allowedStates, goalStates, isMax, distribution)
     differenceDistribution = dict()
     for state in allowedStates:
-        differenceDistribution[state] = abs(distribution[state] - nextDistribution[state])
+        differenceDistribution[state] = nextDistribution[state] - distribution[state]
     return differenceDistribution
-
-
-def calculateScoreOfDifferenceDistribution(allowedStates, differenceDistribution):
-    score = 0
-    for state in allowedStates:
-        score += differenceDistribution[state] * differenceDistribution[state]
-    return score
 
 
 def stepForDistribution(universe, network, allowedStates, goalStates, isMax, distribution):
@@ -163,3 +121,36 @@ def stepForDistribution(universe, network, allowedStates, goalStates, isMax, dis
         outerProbability = stepForSingleState(network, stateFrom, distribution, isMax)
         newDistribution[stateFrom] = outerProbability
     return newDistribution
+
+
+def calculateScoreOfDifferenceDistribution(allowedStates, differenceDistribution):
+    score = 0
+    for state in allowedStates:
+        score += differenceDistribution[state] * differenceDistribution[state]
+    return score
+
+
+def createRandomDistribution(universe, allowedStates, goalStates):
+    distribution = dict()
+    for state in universe:
+        distribution[state] = 0
+    for state in allowedStates:
+        distribution[state] = random.uniform(0, 1)
+    for state in goalStates:
+        distribution[state] = 1
+    return distribution
+
+
+def printDistribution(universe, distribution):
+    print("---")
+    for state in universe:
+        print(str(state) + " " + str(distribution[state]))
+
+
+def printDistributions(universe, distributions):
+    print("---")
+    for state in universe:
+        print(str(state), end='')
+        for distribution in distributions:
+            print(" " + str(distribution[state]), end='')
+        print("")
