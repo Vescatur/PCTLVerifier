@@ -2,7 +2,7 @@ import math
 import random
 
 from ctl_solver import findStatesWithUntil
-from pctl_solver import createInitialProbabilityToReachGoal, findStatesWithCorrectProbability, stepForSingleState
+from value_pctl_solver import createInitialProbabilityToReachGoal, findStatesWithCorrectProbability, stepForSingleState
 
 def printDistribution(universe,distribution):
     print("---")

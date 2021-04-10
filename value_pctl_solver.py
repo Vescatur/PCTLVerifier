@@ -1,8 +1,8 @@
 from config import RELATIVE_ERROR_TARGET
 
 
-def findStatesWithProbabilityUntil(network, universe, allowedStates, goalStates, isEquals, isLessThan, isMax,
-                                   probabilityTarget):
+def findStatesWithValueIteration(network, universe, allowedStates, goalStates, isEquals, isLessThan, isMax,
+                                 probabilityTarget):
     initialProbabilityToReachGoal = createInitialProbabilityToReachGoal(universe, goalStates)
 
     probabilityToReachGoal = findProbabilityToReachGoal(network, allowedStates, goalStates, isMax, initialProbabilityToReachGoal, RELATIVE_ERROR_TARGET)

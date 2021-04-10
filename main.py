@@ -2,7 +2,7 @@ import sys
 from importlib import util
 from timeit import default_timer as timer
 
-from solver import checkSingleProperty
+from main_syntax import checkSingleProperty
 
 if len(sys.argv) < 2:
     print("Error: No model specified.")

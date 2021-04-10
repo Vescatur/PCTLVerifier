@@ -1,7 +1,7 @@
 import math
 
 from config import RELATIVE_ERROR_TARGET, UPPER_BOUND_HEURISTIC, PRINT_OPTIMISTIC_VALUE_ITERATION_ERROR_BOUNDS
-from pctl_solver import findStatesWithCorrectProbability, createInitialProbabilityToReachGoal, \
+from value_pctl_solver import findStatesWithCorrectProbability, createInitialProbabilityToReachGoal, \
     findProbabilityToReachGoal, stepForSingleState, calculateRelativeError
 
 
@@ -11,24 +11,6 @@ def findStatesWithOptimisticValueIteration(network, universe, allowedStates, goa
     probabilityToReachGoal = findProbabilityToReachGoalWithOptimisticValueIteration(network, universe, allowedStates, goalStates, isMax, initialProbabilityToReachGoal, RELATIVE_ERROR_TARGET)
     returnStates = findStatesWithCorrectProbability(goalStates,allowedStates,probabilityToReachGoal,probabilityTarget,isLessThan,isEquals)
     return returnStates
-
-def createUpperProbabilityToReachGoal(universe, lowerProbabilityToReachGoal):
-    upperProbabilityToReachGoal = dict()
-    for state in universe:
-        upperProbabilityToReachGoal[state] = min(lowerProbabilityToReachGoal[state]*(1+UPPER_BOUND_HEURISTIC),1)
-    return upperProbabilityToReachGoal
-
-
-def createAverageProbability(universe, lowerProbability,upperProbability):
-    probabilityToReachGoal = dict()
-    if PRINT_OPTIMISTIC_VALUE_ITERATION_ERROR_BOUNDS:
-       print("Optimistic Value Iteration")
-    for state in universe:
-        if PRINT_OPTIMISTIC_VALUE_ITERATION_ERROR_BOUNDS:
-            print(str(state) + " error bound is [" + str(lowerProbability[state]) + "," + str(upperProbability[state])+"]")
-
-        probabilityToReachGoal[state] = (lowerProbability[state] + upperProbability[state])/2
-    return probabilityToReachGoal
 
 
 def findProbabilityToReachGoalWithOptimisticValueIteration(network, universe, allowedStates, goalStates, isMax, probabilityToReachGoal,relativeErrorTarget):
@@ -54,7 +36,28 @@ def findProbabilityToReachGoalWithOptimisticValueIteration(network, universe, al
             if lowerProbabilityToReachGoal[stateFrom] > upperProbabilityToReachGoal[stateFrom]:
                 return findProbabilityToReachGoalWithOptimisticValueIteration(network, universe, allowedStates, goalStates, isMax, lowerProbabilityToReachGoal, relativeErrorTarget/2)
         if down:
-            return createAverageProbability(universe, lowerProbabilityToReachGoal,upperProbabilityToReachGoal)
+            return createAverageProbabilityToReachGoal(universe, lowerProbabilityToReachGoal, upperProbabilityToReachGoal)
         if up:
             return findProbabilityToReachGoalWithOptimisticValueIteration(network, universe, allowedStates, goalStates, isMax, lowerProbabilityToReachGoal, relativeErrorTarget/2)
     return findProbabilityToReachGoalWithOptimisticValueIteration(network, universe, allowedStates, goalStates, isMax, lowerProbabilityToReachGoal, relativeErrorTarget/2)
+
+
+def createUpperProbabilityToReachGoal(universe, lowerProbabilityToReachGoal):
+    upperProbabilityToReachGoal = dict()
+    for state in universe:
+        upperProbabilityToReachGoal[state] = min(lowerProbabilityToReachGoal[state] * (1 + UPPER_BOUND_HEURISTIC), 1)
+    return upperProbabilityToReachGoal
+
+
+def createAverageProbabilityToReachGoal(universe, lowerProbability, upperProbability):
+    probabilityToReachGoal = dict()
+
+    if PRINT_OPTIMISTIC_VALUE_ITERATION_ERROR_BOUNDS:
+        print("Optimistic Value Iteration")
+    for state in universe:
+        if PRINT_OPTIMISTIC_VALUE_ITERATION_ERROR_BOUNDS:
+            print(str(state) + " error bound is [" + str(lowerProbability[state]) + "," + str(
+                upperProbability[state]) + "]")
+
+        probabilityToReachGoal[state] = (lowerProbability[state] + upperProbability[state]) / 2
+    return probabilityToReachGoal

@@ -1,7 +1,7 @@
 from config import USE_OPTIMISTIC_VALUE_ITERATION, USE_EVOLUTION_VALUE_ITERATION
 from evolution_pctl_solver import findStatesWithEvolutionValueIteration
 from optimistic_pctl_solver import findStatesWithOptimisticValueIteration
-from pctl_solver import findStatesWithProbabilityUntil
+from value_pctl_solver import findStatesWithValueIteration
 
 
 def checkComparisonExpressions(model, checkSinglePropertyExpression, universe, network, propertyExpression):
@@ -46,8 +46,8 @@ def checkComparisonExpressions(model, checkSinglePropertyExpression, universe, n
             return findStatesWithOptimisticValueIteration(network, universe, allowedStates, goalStates, isEquals,
                                                           isLessThan, isMax, probability)
         else:
-            return findStatesWithProbabilityUntil(network, universe, allowedStates, goalStates, isEquals, isLessThan, isMax,
-                                              probability)
+            return findStatesWithValueIteration(network, universe, allowedStates, goalStates, isEquals, isLessThan, isMax,
+                                                probability)
     elif pathExpression.op == "eventually":
         goalStates = checkSinglePropertyExpression(model, universe, network, pathExpression.args[0])
         if USE_EVOLUTION_VALUE_ITERATION:
@@ -57,8 +57,8 @@ def checkComparisonExpressions(model, checkSinglePropertyExpression, universe, n
             return findStatesWithOptimisticValueIteration(network, universe, universe, goalStates, isEquals, isLessThan,
                                                           isMax, probability)
         else:
-            return findStatesWithProbabilityUntil(network, universe, universe, goalStates, isEquals, isLessThan, isMax,
-                                              probability)
+            return findStatesWithValueIteration(network, universe, universe, goalStates, isEquals, isLessThan, isMax,
+                                                probability)
     elif pathExpression.op == "always":
         expression1 = model.PropertyExpression("not", [pathExpression.args[0]])
         expression2 = model.PropertyExpression("eventually", [expression1])
