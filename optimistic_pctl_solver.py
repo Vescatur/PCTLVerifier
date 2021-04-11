@@ -1,6 +1,6 @@
 import math
 
-from config import RELATIVE_ERROR_TARGET, UPPER_BOUND_HEURISTIC, PRINT_OVI_ERROR_BOUNDS
+from config import ERROR_TARGET, UPPER_BOUND_HEURISTIC, PRINT_OVI_ERROR_BOUNDS
 from value_pctl_solver import findStatesWithCorrectProbability, createInitialProbabilityToReachGoal, \
     findProbabilityToReachGoal, stepForSingleState, calculateRelativeError
 
@@ -8,7 +8,7 @@ from value_pctl_solver import findStatesWithCorrectProbability, createInitialPro
 def findStatesWithOptimisticValueIteration(network, universe, allowedStates, goalStates, isEquals, isLessThan, isMax, probabilityTarget):
     initialProbabilityToReachGoal = createInitialProbabilityToReachGoal(universe, goalStates)
 
-    probabilityToReachGoal = findProbabilityToReachGoalWithOptimisticValueIteration(network, universe, allowedStates, goalStates, isMax, initialProbabilityToReachGoal, RELATIVE_ERROR_TARGET)
+    probabilityToReachGoal = findProbabilityToReachGoalWithOptimisticValueIteration(network, universe, allowedStates, goalStates, isMax, initialProbabilityToReachGoal, ERROR_TARGET)
     returnStates = findStatesWithCorrectProbability(goalStates,allowedStates,probabilityToReachGoal,probabilityTarget,isLessThan,isEquals)
     return returnStates
 

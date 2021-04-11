@@ -2,9 +2,10 @@ import math
 import random
 
 from config import PRINT_EVI_STEP, PRINT_EVI_RESULT, RANDOMNESS_OF_STEP_LOWER_BOUND, \
-    RANDOMNESS_OF_STEP_UPPER_BOUND
+    RANDOMNESS_OF_STEP_UPPER_BOUND, ERROR_TARGET, NUMBER_OF_DISTRIBUTIONS
 from ctl_solver import findStatesWithUntil
-from value_pctl_solver import createInitialProbabilityToReachGoal, findStatesWithCorrectProbability, stepForSingleState
+from value_pctl_solver import createInitialProbabilityToReachGoal, findStatesWithCorrectProbability, stepForSingleState, \
+    printProbabilityToReachGoal
 
 
 def findStatesWithEvolutionValueIteration(network, universe, allowedStates, goalStates, isEquals, isLessThan, isMax,
@@ -14,7 +15,7 @@ def findStatesWithEvolutionValueIteration(network, universe, allowedStates, goal
     distribution = findDistributionWithEvolutionValueIteration(network, universe, notBmecAllowedStates, goalStates,
                                                                isMax)
     if PRINT_EVI_RESULT:
-        printDistribution(universe, distribution)
+        printProbabilityToReachGoal(universe, distribution)
     returnStates = findStatesWithCorrectProbability(goalStates, notBmecAllowedStates, distribution, probabilityTarget,
                                                     isLessThan, isEquals)
     return returnStates
@@ -23,7 +24,7 @@ def findStatesWithEvolutionValueIteration(network, universe, allowedStates, goal
 
 
 def findDistributionWithEvolutionValueIteration(network, universe, allowedStates, goalStates, isMax):
-    numberOfDistributions = 50
+    numberOfDistributions = NUMBER_OF_DISTRIBUTIONS
     distributions = [None] * numberOfDistributions
     scores = [None] * numberOfDistributions
     differenceDistribution = [None] * numberOfDistributions
@@ -57,7 +58,20 @@ def findDistributionWithEvolutionValueIteration(network, universe, allowedStates
 
         if PRINT_EVI_STEP:
             printDistributions(universe, distributions)
+
+        if distributionsWithinErrorTarget(universe, distributions, numberOfDistributions, ERROR_TARGET):
+            return distributions[0]
+
     return distributions[0]
+
+def distributionsWithinErrorTarget(universe,distributions,numberOfDistributions,maxAllowedError):
+    for i in range(0,numberOfDistributions):
+        for j in range(0,numberOfDistributions):
+            if i !=j:
+                for state in universe:
+                    if abs(distributions[i][state]-distributions[j][state]) > maxAllowedError:
+                        return False
+    return True
 
 
 def createCombinedDistribution(universe, allowedStates, goalStates, firstDistribution, secondDistribution, scoreFirst, scoreSecond, stepFirst, stepSecond):
@@ -139,12 +153,6 @@ def createRandomDistribution(universe, allowedStates, goalStates):
     for state in goalStates:
         distribution[state] = 1
     return distribution
-
-
-def printDistribution(universe, distribution):
-    print("---")
-    for state in universe:
-        print(str(state) + " " + str(distribution[state]))
 
 
 def printDistributions(universe, distributions):

@@ -1,11 +1,15 @@
-from config import RELATIVE_ERROR_TARGET
+from config import ERROR_TARGET, PRINT_VI_RESULT
 
 
 def findStatesWithValueIteration(network, universe, allowedStates, goalStates, isEquals, isLessThan, isMax,
                                  probabilityTarget):
     initialProbabilityToReachGoal = createInitialProbabilityToReachGoal(universe, goalStates)
 
-    probabilityToReachGoal = findProbabilityToReachGoal(network, allowedStates, goalStates, isMax, initialProbabilityToReachGoal, RELATIVE_ERROR_TARGET)
+    probabilityToReachGoal = findProbabilityToReachGoal(network, allowedStates, goalStates, isMax, initialProbabilityToReachGoal, ERROR_TARGET)
+
+    if PRINT_VI_RESULT:
+        printProbabilityToReachGoal(universe, probabilityToReachGoal)
+
     returnStates = findStatesWithCorrectProbability(goalStates,allowedStates,probabilityToReachGoal,probabilityTarget,isLessThan,isEquals)
     return returnStates
 
@@ -64,3 +68,7 @@ def findStatesWithCorrectProbability(goalStates,allowedStates,probabilityToReach
             returnStates.add(state)
     return returnStates
 
+def printProbabilityToReachGoal(universe, probabilityToReachGoal):
+    print("---")
+    for state in universe:
+        print(str(state) + " " + str(probabilityToReachGoal[state]))
